@@ -1,0 +1,170 @@
+#This is the minimization input script that is written to test to the different
+#origins for Ta5
+#Devin Adams - 8/23/2016
+#################################################################
+#################################################################
+################################################################
+
+#-----------initialization----------#
+units 		metal
+boundary 	s s s  
+atom_style	atomic
+lattice		bcc 3.304
+
+#--------Variables---------------#
+variable length equal 750.008 #226
+variable width  equal 697.144 #210
+variable depth  equal 165.2   #50
+
+
+#----------Create Box-----------#
+region		kuutio block 0 ${length} 0 ${width} 0 ${depth}  units box
+create_box	2 kuutio 
+
+#---------Fill that box with Atoms----#
+
+##-------------------------------------------
+print "Ta${Ta} orientation being used"
+print "origin will be ${a} ${b} ${c}"
+
+if "${Ta}==3" then &
+	"region		grain1 block 0 $(v_length/2) 0 ${width} 0 ${depth} units box" &
+	"lattice	bcc 3.304 orient x 5 1 5 orient y -695 3875 -80 orient z -19455 -3075 20070 spacing 1 1 1" &
+	"create_atoms	1 region grain1" &
+	"region		grain2 block $(v_length/2) ${length} 0 ${width} 0 ${depth} units box" & 
+	"lattice	bcc 3.304 origin ${a} ${b} ${c} orient x 181 -23 125 orient y -7 21 14 orient z -2947 -3409 3640 spacing 1 1 1" & 
+	"create_atoms	2 region grain2" &
+elif ${Ta}==4 &
+	"region		grain1 block 0 $(v_length/2) 0 ${width} 0 ${depth} units box" &
+	"lattice	bcc 3.304 orient x 13 -4 5 orient y 34 63 -38 orient z -163 664 955 spacing 1 1 1" &
+	"create_atoms	1 region grain1" &
+	"region		grain2 block $(v_length/2) ${length} 0 ${width} 0 ${depth} units box" &
+	"lattice	bcc 3.304 origin ${a} ${b} ${c} orient x 32 20 -8 orient y -20 36 10 orient z 488 -160 1552 spacing 1 1 1" &
+	"create_atoms	2 region grain2" & 
+elif ${Ta}==5 &
+	"region		grain1 block 0 $(v_length/2) 0 ${width} 0 ${depth} units box" & 
+	"lattice	bcc 3.304 orient x 28 27 16 orient y -10 24 -23 orient z -1005 484 942 spacing 1 1 1" & 
+	"create_atoms	1 region grain1" & 
+	"region		grain2 block $(v_length/2) ${length} 0 ${width} 0 ${depth} units box" & 
+	"lattice	bcc 3.304 origin ${a} ${b} ${c} orient x 57 -42 12 orient y 8 14 11 orient z -630 -531 1134 spacing 1 1 1" & 
+	"create_atoms	2 region grain2" 
+if "${Ta}==7" then &
+	"region		grain1 block 0 $(v_length/2) 0 ${width} 0 ${depth} units box" &
+	"lattice	bcc 3.304 orient x 18 -12 -12 orient y 2 20 -17 orient z 444 282 384 spacing 1 1 1" &
+	"create_atoms	1 region grain1" &
+	"region		grain2 block $(v_length/2) ${length} 0 ${width} 0 ${depth} units box" & 
+	"lattice	bcc 3.304 origin ${a} ${b} ${c} orient x 153 -4 23 orient y 3 17 -17 orient z -323 2670 2613 spacing 1 1 1" & 
+	"create_atoms	2 region grain2"
+if "${Ta}==0" then &
+	"region		grain1 block 0 $(v_length/2) 0 ${width} 0 ${depth} units box" &
+	"lattice	bcc 3.304 orient x 18 -12 -12 orient y 2 20 -17 orient z 444 282 384 spacing 1 1 1" &
+	"create_atoms	1 region grain1" &
+	"region		grain2 block $(v_length/2) ${length} 0 ${width} 0 ${depth} units box" & 
+	"lattice	bcc 3.304 origin ${a} ${b} ${c} orient x 153 -4 23 orient y 3 17 -17 orient z -323 2670 2613 spacing 1 1 1" & 
+	"create_atoms	2 region grain2"
+##----------------------------------------------- 
+
+
+
+
+
+#-------------------------------------------
+region		energybox block $(v_length*0.04) $(v_length*0.96) $(v_width*0.04) $(v_width*0.96) $(v_depth*0.16) $(v_depth*0.84) units box
+
+group		grain1 type 1
+group		grain2 type 2
+group		energybox region energybox
+
+#--------Potentials----------------#
+pair_style	eam/alloy
+pair_coeff	* * /fslhome/dadams26/potentials/Ta1_Ravelo_2013.eam.alloy Ta Ta
+#pair_coeff	* * /fslhome/dadams26/potentials/Ta2_Ravelo_2013.eam.alloy Ta Ta
+neighbor	0.5 bin #this might be too small. 
+neigh_modify	delay 5 check yes
+
+#-------Displace and Delete-----------#
+displace_atoms 	grain1 move 0 0 0 units lattice
+delete_atoms	overlap $(v_cutoff*3.304*0.8660254) grain1 grain2 #    	# 0.33*lattice parameter * (sqrt(3)/2)
+
+#--------Define Settings------------#
+compute		csd all centro/atom bcc
+compute		cna all cna/atom 2.0		#the cutoff is =1.207*a where a=3.304. Decreased to 2.0 from 3.98 
+compute		eng all pe/atom
+compute		eatoms all reduce sum c_eng
+compute		engbox energybox reduce sum c_eng
+compute		stresses all stress/atom NULL
+compute		my_temp all temp
+compute		pres all pressure my_temp 
+
+
+#----Minimize the Structure--------#
+thermo 		50
+thermo_style	custom step pe lx ly lz press pxx pyy pzz c_eatoms temp c_pres c_pres[1] c_pres[2] c_pres[3] c_pres[4] c_pres[5] c_pres[6]
+
+
+if "${Ta} == 3" then &
+	"dump		2 all cfg 500 ${dumpname3gb} mass type xs ys zs c_csd c_eng c_cna fx fy fz" &
+	"dump_modify	2 thresh c_csd > 2.0" &
+elif ${Ta}==4 &
+	"dump		2 all cfg 500 ${dumpname4gb} mass type xs ys zs c_csd c_eng c_cna fx fy fz" &
+	"dump_modify	2 thresh c_csd > 2.0" 
+if "${Ta} == 5" then &
+	"dump		2 all cfg 500 ${dumpname5gb} mass type xs ys zs c_csd c_eng c_cna fx fy fz" &
+	"dump_modify	2 thresh c_csd > 2.0" 
+if "${Ta} == 7" then &
+	"dump		2 all cfg 500 ${dumpname7gb} mass type xs ys zs c_csd c_eng c_cna fx fy fz" &
+	"dump_modify	2 thresh c_csd > 2.0" 
+if "${Ta} == 0" then &
+	"dump		2 all cfg 500 ${dumpname0gb} mass type xs ys zs c_csd c_eng c_cna fx fy fz" &
+	"dump_modify	2 thresh c_csd > 2.0" 
+
+
+min_style	cg
+minimize	1e-15 1e-15 5000 5000
+
+undump 		2
+
+#---------Relax-----------#
+thermo 		50
+thermo_style	custom step pe lx ly lz press pxx pyy pzz c_eatoms c_engbox
+min_style	cg
+minimize	1e-15 1e-15 5000 5000
+
+
+#----Print Relevant Information (Sanity Check stuff)----#
+#Example, Cohesive Energy should be about -8.1
+
+variable 	natoms equal "count(all)" 
+variable 	natomsebox equal "count(energybox)"
+variable 	teng equal "c_eatoms"
+variable	tengbox equal "c_engbox"
+variable	ecoh equal "v_teng/v_natoms"
+variable	ecohbox equal "v_tengbox/v_natomsebox"
+variable	crossarea equal "(v_width*0.96-v_width*0.04)*(v_depth*0.84-v_depth*0.16)" 
+
+print "Total energy (eV) = ${teng};"
+print "Number of atoms = ${natoms};"
+print "Cohesive energy (eV) = ${ecoh};"
+print "---------------------------------"
+print "Total energy (ev) of boxed region = ${tengbox};"
+print "Number of atoms in boxed region = ${natomsebox};"
+print "Cohesive energy (eV) = ${ecohbox};"
+print "Cross section of boxed region = ${crossarea};"
+
+#----Print that it's finished----#
+print 		"All done with the building of the two grains!"
+
+if "${Ta} == 3" then &
+	"write_restart	${restartname3gb}" &
+elif ${Ta}==4 &
+	"write_restart	${restartname4gb}" 
+if "${Ta} == 5" then &
+	"write_restart	${restartname5gb}" 
+if "${Ta} == 7" then &
+	"write_restart	${restartname7gb}" 
+if "${Ta} == 0" then &
+	"write_restart	${restartname0gb}" 
+
+
+
+

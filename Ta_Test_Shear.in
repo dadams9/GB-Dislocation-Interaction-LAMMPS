@@ -1,0 +1,160 @@
+#Devin Adams - 8/23/2016
+#################################################################
+#################################################################
+#This is the same as the template, just with orientations changed - that's it!
+################################################################
+
+
+#--------Variables---------------#
+variable length equal 500
+variable width  equal 300
+variable depth  equal 500 
+
+# --- Read the equillibrated grain boundary file --- #
+print "Read in saved grain boundary"
+read_restart ${restartname2}
+
+#----Create Region to pull---#
+#These two pull from the left and right
+#region		LeftPull block INF $(v_length*0.02) 0 $(v_width) $(v_depth*0.5) INF units box
+#region		RightPull block $(v_length*0.98) INF 0 $(v_width) INF $(v_depth*0.5) units box
+
+#These two pull form the top and bottom of the sample
+region		LeftPull block INF INF INF INF $(v_depth*0.9) INF units box
+region		RightPull block INF INF INF INF INF $(v_depth*0.1) units box
+
+group		LeftPull region LeftPull
+group		RightPull region RightPull
+group		boundary union LeftPull RightPull
+group		mobile subtract all boundary
+
+
+
+#--------Potentials----------------#
+pair_style	eam/alloy
+pair_coeff	* * /fslhome/dadams26/potentials/Ta1_Ravelo_2013.eam.alloy Ta Ta
+neighbor	0.5 bin
+neigh_modify	delay 5 check yes
+
+
+#--------Define Settings------------#
+compute		new3d mobile temp
+compute		csd all centro/atom bcc
+compute		cna all cna/atom 2.0 #the cutoff is =1.207*a where a=3.304
+compute		eng all pe/atom
+compute		eatoms all reduce sum c_eng
+compute		stresses all stress/atom NULL
+
+
+#-------Compute Stress in location 1 of dislocation at GB----#
+#compute		boxstress stress_box1 stress/atom NULL
+#compute 	vor_volume stress_box1 voronoi/atom
+#compute		p stress_box1 reduce sum c_boxstress[1] c_boxstress[2] c_boxstress[3] c_boxstress[4] c_boxstress[5] c_boxstress[6]
+#compute		vol stress_box1 reduce sum c_vor_volume[1]
+#variable	TransStress11 equal c_p[1]/c_vol 
+#variable	TransStress12 equal c_p[2]/c_vol 
+#variable	TransStress13 equal c_p[3]/c_vol 
+#variable	TransStress14 equal c_p[4]/c_vol 
+#variable	TransStress15 equal c_p[5]/c_vol 
+#variable	TransStress16 equal c_p[6]/c_vol 
+#fix 		10 all ave/time 50 1 50 v_TransStress11 v_TransStress12 v_TransStress13 v_TransStress14 v_TransStress15 v_TransStress16 file zzz.Ta5_TransStress1.out
+
+#-------Compute Stress in location 2 of dislocation at GB----#
+#compute		boxstress2 stress_box2 stress/atom NULL
+#compute 	vor_volume2 stress_box2 voronoi/atom
+#compute		p2 stress_box2 reduce sum c_boxstress2[1] c_boxstress2[2] c_boxstress2[3] c_boxstress2[4] c_boxstress2[5] c_boxstress2[6]
+#compute		vol2 stress_box2 reduce sum c_vor_volume2[1]
+#variable	TransStress21 equal c_p2[1]/c_vol2 
+#variable 	TransStress22 equal c_p2[2]/c_vol2 
+#variable 	TransStress23 equal c_p2[3]/c_vol2 
+#variable 	TransStress24 equal c_p2[4]/c_vol2
+#variable 	TransStress25 equal c_p2[5]/c_vol2
+#variable 	TransStress26 equal c_p2[6]/c_vol2 
+#fix 		11 all ave/time 100 1 100 v_TransStress21 v_TransStress22 v_TransStress23 v_TransStress24 v_TransStress25 v_TransStress26 file zzz.Ta5_TransStress2.out
+
+#-------Compute Stress in location 3 of dislocation at GB----#
+#compute		boxstress3 stress_box3 stress/atom NULL
+#compute 	vor_volume3 stress_box3 voronoi/atom
+#compute		p3 stress_box3 reduce sum c_boxstress3[1] c_boxstress3[2] c_boxstress3[3] c_boxstress3[4] c_boxstress3[5] c_boxstress3[6]
+#compute		vol3 stress_box3 reduce sum c_vor_volume3[1]
+#variable	TransStress31 equal c_p3[1]/c_vol3 
+#variable 	TransStress32 equal c_p3[2]/c_vol3 
+#variable 	TransStress33 equal c_p3[3]/c_vol3 
+#variable 	TransStress34 equal c_p3[4]/c_vol3
+#variable 	TransStress35 equal c_p3[5]/c_vol3
+#variable 	TransStress36 equal c_p3[6]/c_vol3 
+#fix 		12 all ave/time 100 1 100 v_TransStress31 v_TransStress32 v_TransStress33 v_TransStress34 v_TransStress35 v_TransStress36 file zzz.Ta5_TransStress3.out
+
+
+
+reset_timestep	0
+
+
+######################################
+############Deformation###############
+######################################
+#-----------------------------------#
+# ----- Define User Variables ----- #
+variable 	TensileForce equal 8000 	#Doubled the size of the box, so I doubled the size of the tensile force from 750 to 1500
+variable 	RampTime2 equal 20000
+variable 	HoldTime2 equal 80000
+variable 	tmpx equal "lx"
+variable 	L0 equal ${tmpx}
+variable 	strainx equal "(lx - v_L0)/v_L0"
+# --------------------------------- #
+#-----------------------------------#
+
+variable 	RPerAtomForce equal $(-v_TensileForce/count(oikea))
+variable 	RXForce equal ramp(0.0,v_RPerAtomForce)
+variable 	LPerAtomForce equal $(v_TensileForce/count(vasen))
+variable 	LXForce equal ramp(0.0,v_LPerAtomForce)
+
+velocity 	boundary set 0.0 0.0 0.0
+velocity	RightPull set 0 0 0 
+velocity	LeftPull set 0 0 0
+fix		1 all nvt temp 10.0 10.0 1.0 drag 0.0
+#fix		2 LeftPull setforce NULL 0.0 0.0						
+#fix		3 LeftPull addforce v_LXForce 0.0 0.0
+#fix		4 RightPull setforce NULL 0.0 0.0
+#fix		5 RightPull addforce v_RXForce 0.0 0.0
+
+#Pull Top and Bottom
+fix		2 LeftPull setforce 0.0 0.0 NULL						
+fix		3 LeftPull addforce 0.0 0.0 v_LXForce
+fix		4 RightPull setforce 0.0 0.0 NULL 
+fix		5 RightPull addforce 0.0 0.0 v_RXForce
+
+
+dump 		4 all custom 1000 ${dumpname3} id type x y z vx c_cna c_csd c_stresses[1] c_stresses[2] c_stresses[3] c_stresses[4] c_stresses[5] c_stresses[6] 
+dump_modify 	4 thresh c_csd > 0.5 
+dump 		5 all custom 1000 ${dumpname4} id type x y z vx c_cna c_csd c_stresses[1] c_stresses[2] c_stresses[3] c_stresses[4] c_stresses[5] c_stresses[6] 
+
+#dump		5 stress_box cfg 1000 zzdump_Stressbox_Test_Shear*.out mass type xs ys zs c_csd c_eng c_cna fx fy fz
+#dump		99 box cfg 10 zzzdump_PlaneRegion_*.out mass type xs ys zs c_csd c_eng c_cna fx fy fz
+#dump		95 plane_box cfg 1000 zzdump_Planebox_Test_Shear*.out mass type xs ys zs c_csd c_eng c_cna fx fy fz
+
+thermo		1000
+thermo_style 	custom step pe temp lx ly lz press pxx pyy pzz v_strainx #v_TransStress1 v_TransStress2 v_TransStress3 v_TransStress4 v_TransStress5 v_TransStress6
+thermo_modify	temp new3d
+
+run		${RampTime2}
+
+
+#Pull Left and Right
+#unfix		3
+#fix		3 LeftPull addforce $(v_LPerAtomForce) 0.0 0.0 
+#unfix		5
+#fix		5 RightPull addforce $(v_RPerAtomForce) 0.0 0.0 
+ 
+#Pull Top and Bottom
+unfix		3
+fix		3 LeftPull addforce 0.0 0.0 $(v_LPerAtomForce)
+unfix		5
+fix		5 RightPull addforce 0.0 0.0 $(v_RPerAtomForce) 
+
+run 		${HoldTime2}
+
+write_restart	${restartname3}
+print 		"ALL DONE! YOU DID IT!!"
+
+

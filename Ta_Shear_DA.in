@@ -1,0 +1,168 @@
+#This is the TaOrigin Test Shearing input script for Ta5
+#Devin Adams - 8/23/2016
+#################################################################
+#################################################################
+#This is the same as the template, just with orientations changed - that's it!
+################################################################
+
+
+#--------Variables---------------#
+variable length equal 750.008
+variable width  equal 697.144
+variable depth  equal 165.2 
+
+# --- Read the equillibrated grain boundary file --- #
+print "Ta${Ta} orientation being used"
+print "origin will be ${a} ${b} ${c}"
+print "Read in saved grain boundary"
+
+if "${Ta} == 3" then &
+	"read_restart	${restartname3eq}" &
+elif ${Ta}==4 &
+	"read_restart	${restartname4eq}" 
+if "${Ta} == 5" then &
+	"read_restart	${restartname5eq}" 
+if "${Ta} == 7" then &
+	"read_restart	${restartname7eq}" 
+if "${Ta} == 0" then &
+	"read_restart	${restartname0eq}" 
+
+#--Create regions to pull on----#
+#region		LeftPull block INF $(v_length*0.02) 0 $(v_width) INF INF units box
+#region		RightPull block $(v_length*0.98) INF 0 $(v_width) INF INF units box
+region		LeftPull block 0 $(v_length*1) 0 $(v_width) $(v_depth*0.98) INF units box
+region		RightPull block 0 $(v_length*1) 0 $(v_width) INF $(v_depth*0.02) units box
+
+group		LeftPull region LeftPull
+group		RightPull region RightPull
+group		boundary union LeftPull RightPull
+group		mobile subtract all boundary
+
+#--------Potentials----------------#
+pair_style	eam/alloy
+pair_coeff	* * /fslhome/dadams26/potentials/Ta1_Ravelo_2013.eam.alloy Ta Ta
+#pair_coeff	* * /fslhome/dadams26/potentials/Ta2_Ravelo_2013.eam.alloy Ta Ta
+neighbor	0.5 bin
+neigh_modify	delay 5 check yes
+
+
+#--------Define Settings------------#
+compute		new3d mobile temp
+compute		csd all centro/atom bcc
+compute		cna all cna/atom 2.0 #the cutoff is =1.207*a where a=3.304
+compute		eng all pe/atom
+compute		eatoms all reduce sum c_eng
+compute		stresses all stress/atom NULL
+compute		stress1 stress_box1 stress/atom NULL
+compute		stress2 stress_box2 stress/atom NULL
+compute		stress3 stress_box3 stress/atom NULL
+compute 	vor_volume1 stress_box1 voronoi/atom
+compute 	vor_volume2 stress_box2 voronoi/atom
+compute 	vor_volume3 stress_box3 voronoi/atom
+compute      	sv1 stress_box1 slip/atom 1.99 3.98
+compute      	sv2 stress_box2 slip/atom 1.99 3.98
+compute      	sv3 stress_box3 slip/atom 1.99 3.98
+compute		my_temp all temp
+compute		pres all pressure my_temp 
+
+
+reset_timestep	0
+
+
+######################################
+############Deformation###############
+######################################
+#-----------------------------------#
+# ----- Define User Variables ----- #
+variable 	TensileForce equal 2000 	#Doubled the size of the box, so I doubled the size of the tensile force from 750 to 1500
+variable 	RampTime2 equal 50000	
+variable 	HoldTime2 equal 150000	
+variable 	tmpx equal "lx"
+variable 	L0 equal ${tmpx}
+variable 	strainx equal "(lx - v_L0)/v_L0"
+# --------------------------------- #
+#-----------------------------------#
+
+variable 	RPerAtomForce equal $(v_TensileForce/count(RightPull))
+variable 	RXForce equal ramp(0.0,v_RPerAtomForce)
+variable 	LPerAtomForce equal $(-v_TensileForce/count(LeftPull))
+variable 	LXForce equal ramp(0.0,v_LPerAtomForce)
+
+velocity 	boundary set 0.0 0.0 0.0
+velocity	RightPull set 0 0 0 
+velocity	LeftPull set 0 0 0
+fix		1 all nvt temp 10.0 10.0 1.0 drag 0.0
+fix		2 LeftPull setforce NULL 0.0 0.0						#Is it possible to just change the size of the box gradually instead of pulling on it?
+fix		3 LeftPull addforce v_LXForce 0.0 0.0
+fix		4 RightPull setforce NULL 0.0 0.0
+fix		5 RightPull addforce v_RXForce 0.0 0.0
+
+if "${Ta} == 3" then &
+	"dump 		4 all custom 500 ${dumpname3sh} id type x y z vx c_cna c_csd c_stresses[1] c_stresses[2] c_stresses[3] c_stresses[4] c_stresses[5] c_stresses[6]" & 
+	"dump_modify 	4 thresh c_csd > 2.0" &
+	"dump		9 all custom 7500 ${dumpname3bsh} id type x y z vx c_cna c_csd c_stresses[1] c_stresses[2] c_stresses[3] c_stresses[4] c_stresses[5] c_stresses[6]"
+	#"dump		31 stress_box1 custom 500 ${dumpname3sbox1} id type x y z c_csd c_eng c_stress1[1] c_stress1[2] c_stress1[3] c_stress1[4] c_stress1[5] c_stress1[6] c_vor_volume1[1] c_vor_volume1[2] c_sv1[1] c_sv1[2] c_sv1[3] c_sv1[4]" &
+	#"dump		32 stress_box2 custom 500 ${dumpname3sbox2} id type x y z c_csd c_eng c_stress2[1] c_stress2[2] c_stress2[3] c_stress2[4] c_stress2[5] c_stress2[6] c_vor_volume2[1] c_vor_volume2[2] c_sv2[1] c_sv2[2] c_sv2[3] c_sv2[4]" &
+	#"dump		33 stress_box3 custom 500 ${dumpname3sbox3} id type x y z c_csd c_eng c_stress3[1] c_stress3[2] c_stress3[3] c_stress3[4] c_stress3[5] c_stress3[6] c_vor_volume3[1] c_vor_volume3[2] c_sv3[1] c_sv3[2] c_sv3[3] c_sv3[4]" &
+	#"dump		34 plane_box custom 500 ${dumpname3sbox4} id type x y z c_csd c_eng c_stresses[1] c_stresses[2] c_stresses[3] c_stresses[4] c_stresses[5] c_stresses[6]" &
+if "${Ta} == 4" then &
+	"dump 		4 all custom 500 ${dumpname4sh} id type x y z vx c_cna c_csd c_stresses[1] c_stresses[2] c_stresses[3] c_stresses[4] c_stresses[5] c_stresses[6]" & 
+	"dump_modify 	4 thresh c_csd > 2.0" &
+	"dump		41 stress_box1 custom 500 ${dumpname4sbox1} id type x y z c_csd c_eng c_stress1[1] c_stress1[2] c_stress1[3] c_stress1[4] c_stress1[5] c_stress1[6] c_vor_volume1[1] c_vor_volume1[2] c_sv1[1] c_sv1[2] c_sv1[3] c_sv1[4]" &
+	"dump		42 stress_box2 custom 500 ${dumpname4sbox2} id type x y z c_csd c_eng c_stress2[1] c_stress2[2] c_stress2[3] c_stress2[4] c_stress2[5] c_stress2[6] c_vor_volume2[1] c_vor_volume2[2] c_sv2[1] c_sv2[2] c_sv2[3] c_sv2[4]" &
+	"dump		43 stress_box3 custom 500 ${dumpname4sbox3} id type x y z c_csd c_eng c_stress3[1] c_stress3[2] c_stress3[3] c_stress3[4] c_stress3[5] c_stress3[6] c_vor_volume3[1] c_vor_volume3[2] c_sv3[1] c_sv3[2] c_sv3[3] c_sv3[4]" &
+	#"dump		44 plane_box custom 500 ${dumpname4sbox4} id type x y z c_csd c_eng c_stresses[1] c_stresses[2] c_stresses[3] c_stresses[4] c_stresses[5] c_stresses[6]" &	
+	"dump		9 all custom 7500 ${dumpname4bsh} id type x y z vx c_cna c_csd c_stresses[1] c_stresses[2] c_stresses[3] c_stresses[4] c_stresses[5] c_stresses[6]"
+if "${Ta} == 5" then &
+	"dump 		4 all custom 500 ${dumpname5sh} id type x y z vx c_cna c_csd c_stresses[1] c_stresses[2] c_stresses[3] c_stresses[4] c_stresses[5] c_stresses[6]" & 
+	"dump_modify 	4 thresh c_csd > 2.0" &
+	"dump		51 stress_box1 custom 500 ${dumpname5sbox1} id type x y z c_csd c_eng c_stress1[1] c_stress1[2] c_stress1[3] c_stress1[4] c_stress1[5] c_stress1[6] c_vor_volume1[1] c_vor_volume1[2] c_sv1[1] c_sv1[2] c_sv1[3] c_sv1[4]" &
+	"dump		52 stress_box2 custom 500 ${dumpname5sbox2} id type x y z c_csd c_eng c_stress2[1] c_stress2[2] c_stress2[3] c_stress2[4] c_stress2[5] c_stress2[6] c_vor_volume2[1] c_vor_volume2[2] c_sv2[1] c_sv2[2] c_sv2[3] c_sv2[4]" &
+	"dump		53 stress_box3 custom 500 ${dumpname5sbox3} id type x y z c_csd c_eng c_stress3[1] c_stress3[2] c_stress3[3] c_stress3[4] c_stress3[5] c_stress3[6] c_vor_volume3[1] c_vor_volume3[2] c_sv3[1] c_sv3[2] c_sv3[3] c_sv3[4]" &
+	#"dump		54 plane_box custom 500 ${dumpname5sbox4} id type x y z c_csd c_eng c_stresses[1] c_stresses[2] c_stresses[3] c_stresses[4] c_stresses[5] c_stresses[6]" &	
+	"dump		9 all custom 7500 ${dumpname5bsh} id type x y z vx c_cna c_csd c_stresses[1] c_stresses[2] c_stresses[3] c_stresses[4] c_stresses[5] c_stresses[6]" 
+if "${Ta} == 7" then &
+	"dump 		4 all custom 500 ${dumpname7sh} id type x y z vx c_cna c_csd c_stresses[1] c_stresses[2] c_stresses[3] c_stresses[4] c_stresses[5] c_stresses[6]" &
+	"dump_modify 	4 thresh c_csd > 2.0" &
+	"dump		71 stress_box1 custom 500 ${dumpname7sbox1} id type x y z c_csd c_eng c_stress1[1] c_stress1[2] c_stress1[3] c_stress1[4] c_stress1[5] c_stress1[6] c_vor_volume1[1] c_vor_volume1[2] c_sv1[1] c_sv1[2] c_sv1[3] c_sv1[4]" &
+	"dump		72 stress_box2 custom 500 ${dumpname7sbox2} id type x y z c_csd c_eng c_stress2[1] c_stress2[2] c_stress2[3] c_stress2[4] c_stress2[5] c_stress2[6] c_vor_volume2[1] c_vor_volume2[2] c_sv2[1] c_sv2[2] c_sv2[3] c_sv2[4]" &
+	"dump		73 stress_box3 custom 500 ${dumpname7sbox3} id type x y z c_csd c_eng c_stress3[1] c_stress3[2] c_stress3[3] c_stress3[4] c_stress3[5] c_stress3[6] c_vor_volume3[1] c_vor_volume3[2] c_sv3[1] c_sv3[2] c_sv3[3] c_sv3[4]" &
+	#"dump		74 plane_box custom 500 ${dumpname7sbox4} id type x y z c_csd c_eng c_stresses[1] c_stresses[2] c_stresses[3] c_stresses[4] c_stresses[5] c_stresses[6]" &	
+	"dump		9 all custom 7500 ${dumpname7bsh} id type x y z vx c_cna c_csd c_stresses[1] c_stresses[2] c_stresses[3] c_stresses[4] c_stresses[5] c_stresses[6]" 
+if "${Ta} == 0" then &
+	"dump 		4 all custom 500 ${dumpname0sh} id type x y z vx c_cna c_csd c_stresses[1] c_stresses[2] c_stresses[3] c_stresses[4] c_stresses[5] c_stresses[6]" &
+	"dump_modify 	4 thresh c_csd > 2.0" &
+	"dump		101 stress_box1 custom 500 ${dumpname0sbox1} id type x y z c_csd c_eng c_stress1[1] c_stress1[2] c_stress1[3] c_stress1[4] c_stress1[5] c_stress1[6] c_vor_volume1[1] c_vor_volume1[2] c_sv1[1] c_sv1[2] c_sv1[3] c_sv1[4]" &
+	"dump		102 stress_box2 custom 500 ${dumpname0sbox2} id type x y z c_csd c_eng c_stress2[1] c_stress2[2] c_stress2[3] c_stress2[4] c_stress2[5] c_stress2[6] c_vor_volume2[1] c_vor_volume2[2] c_sv2[1] c_sv2[2] c_sv2[3] c_sv2[4]" &
+	"dump		103 stress_box3 custom 500 ${dumpname0sbox3} id type x y z c_csd c_eng c_stress3[1] c_stress3[2] c_stress3[3] c_stress3[4] c_stress3[5] c_stress3[6] c_vor_volume3[1] c_vor_volume3[2] c_sv3[1] c_sv3[2] c_sv3[3] c_sv3[4]" &
+	"dump		9 all custom 7500 ${dumpname0bsh} id type x y z vx c_cna c_csd c_stresses[1] c_stresses[2] c_stresses[3] c_stresses[4] c_stresses[5] c_stresses[6]" 
+
+
+
+thermo		50
+thermo_style 	custom step pe temp lx ly lz press pxx pyy pzz v_strainx c_pres c_pres[1] c_pres[2] c_pres[3] c_pres[4] c_pres[5] c_pres[6]
+#v_TransStress1 v_TransStress2
+thermo_modify	temp new3d
+
+run		${RampTime2}
+
+unfix		3
+fix		3 LeftPull addforce $(v_LPerAtomForce) 0.0 0.0
+unfix		5
+fix		5 RightPull addforce $(v_RPerAtomForce) 0.0 0.0
+
+run 		${HoldTime2}
+
+if "${Ta} == 3" then &
+	"write_restart	${restartname3sh}" &
+elif ${Ta}==4 &
+	"write_restart	${restartname4sh}" 
+if "${Ta} == 5" then &
+	"write_restart	${restartname5sh}" 
+if "${Ta} == 7" then &
+	"write_restart	${restartname7sh}" 
+if "${Ta} == 0" then &
+	"write_restart	${restartname0sh}" 
+print 		"ALL DONE! YOU DID IT!!"
+
+

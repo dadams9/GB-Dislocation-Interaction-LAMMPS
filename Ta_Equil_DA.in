@@ -1,0 +1,279 @@
+#This is the equilibration input for the Origin testing of Ta
+#Devin Adams - 8/2/2016
+#################################################################
+#################################################################
+################################################################
+
+
+#--------Variables---------------#
+variable length equal 750.008
+variable width  equal 697.144
+variable depth  equal 165.2 
+
+#----Read in the restart file GBmin---#
+print "Ta${Ta} orientation being used"
+print "Origin will be ${a} ${b} ${c}"
+print "Notch shape will be ${notchshape}"
+
+if "${Ta} == 3" then &
+	"read_restart	${restartname3gb}" &
+elif ${Ta}==4 &
+	"read_restart	${restartname4gb}"
+if "${Ta} == 5" then &
+	"read_restart	${restartname5gb}"
+if "${Ta} == 7" then &
+	"read_restart	${restartname7gb}"
+if "${Ta} == 0" then &
+	"read_restart	${restartname0gb}"
+
+
+#---Cut out the notches in the grains---#
+#create regions to cut---------#
+region		vasen block INF $(v_length*0.02) INF $(v_width*0.5) INF INF units box
+region		oikea block $(v_length*0.98) INF $(v_width*0.5) INF INF INF units box
+
+if "${notchshape} == 1" then &
+	"region		leftdelete prism 0 $(0.2*v_length) $(v_width*0.5) $(v_width) INF INF $(-0.15*v_length) 0 0 units box" & 
+	"region 	rightdelete prism $(v_length*.95) $(v_length*1.27) 0 $(v_width*0.5) INF INF $(-0.15*v_length) 0 0 units box"
+if "${notchshape} == 2" then &
+	"region		leftdelete prism 0 $(0.2*v_length) $(v_width*0.5) $(v_width) INF INF $(-0.15*v_length) 0 0 units box" & 
+	"region 	rightdelete prism $(v_length*.97) $(v_length*1.47) 0 $(v_width*0.5) INF INF $(-0.25*v_length) 0 0 units box" & 
+	"region		rightdelbox prism $(v_length*0.73) $(v_length*1.1) $(v_width*0.495) $(v_width*0.51) INF INF 0 0 0 units box" & 
+	"region 	rightcylinder cylinder z $(0.73*v_length) $(0.50*v_width) $(0.01*v_width) INF INF units box" & 
+	"delete_atoms	region	rightdelbox" & 
+	"delete_atoms 	region rightcylinder"  
+if "${notchshape} == 3" then &
+	"region 	rightdelete prism $(v_length*.95) $(v_length*1.27) 0 $(v_width*0.5) INF INF $(-0.15*v_length) 0 0 units box" &
+	"region		leftdelete prism 0 $(0.28*v_length) $(v_width*0.5) $(v_width) INF INF $(-0.25*v_length) 0 0 units box" &
+	"region		leftdelbox prism 0 $(0.27*v_length) $(v_width*0.49) $(v_width*0.505) INF INF 0 0 0 units box" &
+	"region 	leftcylinder cylinder z $(0.27*v_length) $(0.50*v_width) $(0.01*v_width) INF INF units box" &
+	"delete_atoms 	region leftcylinder" &
+	"delete_atoms	region	leftdelbox" 
+if "${notchshape} == 4" then &
+	"region		leftdelete prism 0 $(0.28*v_length) $(v_width*0.5) $(v_width) INF INF $(-0.25*v_length) 0 0 units box" &
+	"region		leftdelbox prism 0 $(0.27*v_length) $(v_width*0.49) $(v_width*0.505) INF INF 0 0 0 units box" &
+	"region 	leftcylinder cylinder z $(0.27*v_length) $(0.50*v_width) $(0.01*v_width) INF INF units box" &
+	"region 	rightdelete prism $(v_length*.97) $(v_length*1.47) 0 $(v_width*0.5) INF INF $(-0.25*v_length) 0 0 units box" &
+	"region		rightdelbox prism $(v_length*0.73) $(v_length*1.1) $(v_width*0.495) $(v_width*0.51) INF INF 0 0 0 units box" &
+	"region 	rightcylinder cylinder z $(0.73*v_length) $(0.50*v_width) $(0.01*v_width) INF INF units box" &
+	"delete_atoms 	region leftcylinder" &
+	"delete_atoms 	region rightcylinder" &
+	"delete_atoms	region	leftdelbox" &
+	"delete_atoms	region	rightdelbox" 
+if "${notchshape} == 5" then &
+	"region		leftdelete prism 0 $(0.28*v_length) $(v_width*0.5) $(v_width) INF INF $(-0.25*v_length) 0 0 units box" &
+	"region		leftdelbox prism 0 $(0.27*v_length) $(v_width*0.49) $(v_width*0.505) INF INF 0 0 0 units box" &
+	"region 	leftcylinder cylinder z $(0.27*v_length) $(0.50*v_width) $(0.01*v_width) INF INF units box" &
+	"region 	rightdelete prism $(v_length*.97) $(v_length*1.47) 0 $(v_width*0.5) INF INF $(-0.25*v_length) 0 0 units box" &
+	"region		rightdelbox prism $(v_length*0.73) $(v_length*1.1) $(v_width*0.495) $(v_width*0.525) INF INF 0 0 0 units box" &
+	"region 	rightdelbox2 prism $(v_length*.98-0.025*v_width) $(v_length*1.47-0.025*v_width) $(v_width*0.0) $(v_width*0.5) INF INF $(-0.25*v_length) 0 0 units box" &
+	"region 	rightcylinder cylinder z $(0.73*v_length) $(0.50*v_width) $(0.025*v_width) INF INF units box" &
+	"delete_atoms	region	rightdelbox2" &
+	"delete_atoms	region	rightdelbox" &
+	"delete_atoms 	region rightcylinder" &
+	"delete_atoms 	region leftcylinder" &
+	"delete_atoms	region	leftdelbox" 
+if "${notchshape} == 6" then &
+	"region 	rightdelete prism $(v_length*.97) $(v_length*1.47) 0 $(v_width*0.5) INF INF $(-0.25*v_length) 0 0 units box" &
+	"region		rightdelbox prism $(v_length*0.73) $(v_length*1.1) $(v_width*0.495) $(v_width*0.51) INF INF 0 0 0 units box" &
+	"region 	rightcylinder cylinder z $(0.73*v_length) $(0.50*v_width) $(0.01*v_width) INF INF units box" &
+	"region		leftdelete prism 0 $(0.28*v_length) $(v_width*0.5) $(v_width) INF INF $(-0.25*v_length) 0 0 units box" &
+	"region		leftdelbox prism 0 $(0.27*v_length) $(v_width*0.475) $(v_width*0.505) INF INF 0 0 0 units box" &
+	"region		leftdelbox2 prism 0 $(0.27*v_length+0.025*v_width) $(v_width*0.5025) $(v_width*1.025) INF INF $(-0.25*v_length) 0 0 units box" &
+	"region 	leftcylinder cylinder z $(0.27*v_length) $(0.50*v_width) $(0.025*v_width) INF INF units box" &
+	"delete_atoms	region	leftdelbox2" &
+	"delete_atoms 	region leftcylinder" &
+	"delete_atoms 	region rightcylinder" &
+	"delete_atoms	region	leftdelbox" &
+	"delete_atoms	region	rightdelbox" 
+if "${notchshape} == 7" then &
+	"region		leftdelete prism 0 $(0.28*v_length) $(v_width*0.5) $(v_width) INF INF $(-0.25*v_length) 0 0 units box" &
+	"region		leftdelbox prism 0 $(0.27*v_length) $(v_width*0.475) $(v_width*0.505) INF INF 0 0 0 units box" &
+	"region		leftdelbox2 prism 0 $(0.27*v_length+0.025*v_width) $(v_width*0.5025) $(v_width*1.025) INF INF $(-0.25*v_length) 0 0 units box" &
+	"region 	leftcylinder cylinder z $(0.27*v_length) $(0.50*v_width) $(0.025*v_width) INF INF units box" &
+	"region 	rightdelete prism $(v_length*.97) $(v_length*1.47) 0 $(v_width*0.5) INF INF $(-0.25*v_length) 0 0 units box" &
+	"region		rightdelbox prism $(v_length*0.73) $(v_length*1.1) $(v_width*0.495) $(v_width*0.525) INF INF 0 0 0 units box" &
+	"region 	rightdelbox2 prism $(v_length*.98-0.025*v_width) $(v_length*1.47-0.025*v_width) $(v_width*0.0) $(v_width*0.5) INF INF $(-0.25*v_length) 0 0 units box" &
+	"region 	rightcylinder cylinder z $(0.73*v_length) $(0.50*v_width) $(0.025*v_width) INF INF units box" &
+	"delete_atoms	region	rightdelbox2" &
+	"delete_atoms	region	leftdelbox2" &
+	"delete_atoms 	region leftcylinder" &
+	"delete_atoms 	region rightcylinder" &
+	"delete_atoms	region	leftdelbox" &
+	"delete_atoms	region	rightdelbox" 
+if "${notchshape} == 8" then &
+	"region		leftdelete prism 0 $(0.28*v_length) $(v_width*0.5) $(v_width) INF INF $(-0.25*v_length) 0 0 units box" &
+	"region		leftdelbox prism 0 $(0.27*v_length) $(v_width*0.475) $(v_width*0.505) INF INF 0 0 0 units box" &
+	"region		leftdelbox2 prism 0 $(0.27*v_length+0.025*v_width) $(v_width*0.5025) $(v_width*1.025) INF INF $(-0.25*v_length) 0 0 units box" &
+	"region 	leftcylinder cylinder z $(0.27*v_length) $(0.50*v_width) $(0.025*v_width) INF INF units box" &
+	"region 	rightdelete prism $(v_length*.95) $(v_length*1.27) 0 $(v_width*0.5) INF INF $(-0.15*v_length) 0 0 units box" &
+	"delete_atoms	region	leftdelbox2" &
+	"delete_atoms 	region leftcylinder" &
+	"delete_atoms	region	leftdelbox" 
+if "${notchshape} == 9" then &
+	"region 	rightdelete prism $(v_length*.97) $(v_length*1.47) 0 $(v_width*0.5) INF INF $(-0.25*v_length) 0 0 units box" &
+	"region		rightdelbox prism $(v_length*0.73) $(v_length*1.1) $(v_width*0.495) $(v_width*0.525) INF INF 0 0 0 units box" &
+	"region 	rightdelbox2 prism $(v_length*.98-0.025*v_width) $(v_length*1.47-0.025*v_width) $(v_width*0.0) $(v_width*0.5) INF INF $(-0.25*v_length) 0 0 units box" &
+	"region 	rightcylinder cylinder z $(0.73*v_length) $(0.50*v_width) $(0.025*v_width) INF INF units box" &
+	"region		leftdelete prism 0 $(0.2*v_length) $(v_width*0.5) $(v_width) INF INF $(-0.15*v_length) 0 0 units box" &
+	"delete_atoms	region	rightdelbox" &
+	"delete_atoms 	region rightcylinder" &
+	"delete_atoms	region	rightdelbox2" 
+if "${notchshape} == 10" then &
+	"region		leftdelete prism 0 $(0.25*v_length) $(v_width*0.75) $(v_width) INF INF $(0.0*v_length) 0 0 units box" &
+	"region 	leftcylinder cylinder z $(0.0*v_length) $(0.75*v_width) $(0.25*v_length) INF INF units box" &
+	"region 	rightdelete prism $(v_length*.97) $(v_length*1.47) 0 $(v_width*0.5) INF INF $(-0.25*v_length) 0 0 units box" &
+	"delete_atoms 	region  leftcylinder"
+if "${notchshape} == 11" then &
+	"region		leftdelete prism $(-.25*v_length) $(0.0*v_length) $(v_width*0.5) $(v_width) INF INF $(0.25*v_length) 0 0 units box" &
+	"region 	rightdelete prism $(v_length*.97) $(v_length*1.47) 0 $(v_width*0.5) INF INF $(-0.25*v_length) 0 0 units box"
+if "${notchshape} == 12" then &
+	"region		rightdelete prism $(0.75*v_length) $(1.0*v_length) $(v_width*0.0) $(v_width*0.25) INF INF $(0.0*v_length) 0 0 units box" &
+	"region 	rightcylinder cylinder z $(1.0*v_length) $(0.25*v_width) $(0.25*v_length) INF INF units box" &
+	"region		leftdelete prism 0 $(0.2*v_length) $(v_width*0.5) $(v_width) INF INF $(-0.15*v_length) 0 0 units box" &
+	"delete_atoms 	region  rightcylinder"
+if "${notchshape} == 13" then &
+	"region	leftdelete prism $(-0.025*v_length) $(0.025*v_length)  0 $(v_width) $(v_depth*0.5) $(v_depth*0.55) 0 $(-0.025*v_width) 0 units box" &
+	"region	rightdelete prism $(0.975*v_length) $(1.025*v_length)  0 $(v_width) $(v_depth*0.5) $(v_depth*0.55) 0 $(0.025*v_width) 0 units box" &
+	"region	leftdeletebot prism $(-0.025*v_length) $(0.0*v_length)  0 $(v_width) $(v_depth*0.45) $(v_depth*0.5) 0 $(0.025*v_width) 0 units box" &
+	"region	rightdeletebot prism $(1.0*v_length) $(1.025*v_length)  0 $(v_width) $(v_depth*0.45) $(v_depth*0.5) 0 $(-0.025*v_width) 0 units box" &
+	"delete_atoms	region	leftdeletebot" &
+	"delete_atoms	region	rightdeletebot"
+
+
+
+ 
+delete_atoms	region	leftdelete
+delete_atoms	region	rightdelete
+
+
+group		oikea region oikea
+group		vasen region vasen
+group		boundary union vasen oikea
+group		mobile subtract all boundary
+
+
+
+#--------------Create a region of atoms to analyze stress-------#
+region		stress_box1 prism $(0.5*v_length-16) $(0.50*v_length-6) $(0.0*v_width) $(1.0*v_width) 0 $(1.0*v_depth) 0 0 0 units box
+group		stress_box1 region stress_box1
+region		stress_box2 prism $(0.50*v_length+6) $(0.50*v_length+16) $(0.0*v_width) $(1.0*v_width) 0 $(1.0*v_depth) 0 0 0 units box
+group		stress_box2 region stress_box2
+region		stress_box3 prism $(0.50*v_length-6) $(0.50*v_length+6) $(0.0*v_width) $(1.0*v_width) 0 $(1.0*v_depth) 0 0 0 units box
+group		stress_box3 region stress_box3
+#region		plane_box prism 310 $(0.50*v_length-2.5) 150 220 0 $(1.0*v_depth) 0 0 0 units box
+#group		plane_box region plane_box
+
+
+#--------Potentials----------------#
+pair_style	eam/alloy
+pair_coeff	* * /fslhome/dadams26/potentials/Ta1_Ravelo_2013.eam.alloy Ta Ta
+#pair_coeff	* * /fslhome/dadams26/potentials/Ta2_Ravelo_2013.eam.alloy Ta Ta
+neighbor	0.5 bin
+neigh_modify	delay 5 check yes
+
+
+#--------Define Settings------------#
+compute		csd all centro/atom bcc
+compute		cna all cna/atom 2.0 #the cutoff is =1.207*a where a=3.304
+compute		eng all pe/atom
+compute		eatoms all reduce sum c_eng
+compute		stresses all stress/atom NULL
+compute		new3d mobile temp
+compute      	sv1 stress_box1 slip/atom 1.99 3.98
+compute      	sv2 stress_box2 slip/atom 1.99 3.98
+compute      	sv3 stress_box3 slip/atom 1.99 3.98
+compute		my_temp all temp
+compute		pres all pressure my_temp 
+
+# --- Minimize the Structure --- #
+print 		"Run strucutre minimization"
+thermo 		250
+thermo_style 	custom step pe lx ly lz press pxx pyy pzz c_eatoms
+min_style 	cg
+minimize 	1e-15 1e-15 5000 5000
+
+
+
+
+#----Print that it's finished----#
+print 		"All done with cutting out the notches!"
+
+
+reset_timestep	0
+
+#######################
+# --- Equilibrate --- #
+#######################
+variable 	alpha equal 1.4489e-10
+variable 	tmpx equal "lx"
+variable 	tmpy equal "ly"
+variable 	tmpz equal "lz"
+variable 	L0 equal ${tmpx}
+variable 	strainx equal "(lx - v_L0)/v_L0"
+
+variable 	deltax equal $(v_alpha*10*lx)
+variable 	deltay equal $(v_alpha*10*ly)
+variable 	deltaz equal $(v_alpha*10*lz)
+
+print 		"v_deltax"
+print 		"${deltax}"
+
+displace_atoms 	all ramp x 0.0 ${deltax} x 0.0 ${tmpx}	#Why are these displace_atoms commands even here? They hardly move the atoms at all.
+displace_atoms 	all ramp y 0.0 ${deltay} y 0.0 ${tmpy}
+displace_atoms 	all ramp z 0.0 ${deltaz} z 0.0 ${tmpz}
+
+print 		"Run equilibration period"
+velocity	all create 20.0 6843235 temp new3d # mom yes rot no
+#unfix 1
+fix		1 all nvt temp 10.0 10.0 10.0 drag 3000.0  #Try decreasing 34 (Tdamp and Pdamp)
+
+thermo		250
+thermo_style 	custom step pe temp lx ly lz press pxx pyy pzz v_strainx c_pres c_pres[1] c_pres[2] c_pres[3] c_pres[4] c_pres[5] c_pres[6]
+
+thermo_modify	temp new3d
+
+
+if "${Ta} == 3" then &
+	"dump 		3 all custom 4000 ${dumpname3eq} id type x y z vx c_cna c_csd" &
+	"dump_modify 	3 thresh c_csd > 2.0" &
+	"dump		30 all custom 3000 zzdump.Ta3_550_PressuresEquil_WidthNotch*.out id type x y z c_csd c_eng" &
+elif ${Ta}==4 &
+	"dump 		3 all custom 4000 ${dumpname4eq} id type x y z vx c_cna c_csd" &
+	"dump_modify 	3 thresh c_csd > 2.0"
+if "${Ta} == 5" then &
+	"dump 		3 all custom 4000 ${dumpname5eq} id type x y z vx c_cna c_csd" &
+	"dump_modify 	3 thresh c_csd > 2.0"
+if "${Ta} == 7" then &
+	"dump 		3 all custom 4000 ${dumpname7eq} id type x y z vx c_cna c_csd" &
+	"dump_modify 	3 thresh c_csd > 2.0"
+if "${Ta} == 0" then &
+	"dump 		3 all custom 4000 ${dumpname0eq} id type x y z vx c_cna c_csd" &
+	"dump_modify 	3 thresh c_csd > 2.0"
+
+timestep	0.001 	#was 0.001 ps. Several papers run their simulations at 2 fs timesteps (0.002ps)
+run		50000
+
+unfix		1
+fix		1 all nvt temp 10.0 10.0 10.0 drag 2000.0   #The drag value was 2000 when it was initially working. 
+run		45000
+
+unfix		1
+fix		1 all nvt temp 10.0 10.0 1.0 drag 0.0
+run		15000
+
+## --- Write Restart --- #
+print 		"Equilibration is All Done!"
+print 		"Now for the fun part - pulling it!"
+
+if "${Ta} == 3" then &
+	"write_restart	${restartname3eq}" &
+elif ${Ta}==4 &
+	"write_restart	${restartname4eq}"
+if "${Ta} == 5" then &
+	"write_restart	${restartname5eq}"
+if "${Ta} == 7" then &
+	"write_restart	${restartname7eq}"
+if "${Ta} == 0" then &
+	"write_restart	${restartname0eq}"
+
